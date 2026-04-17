@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { useLoaderData } from "react-router";
-import { unauthenticated } from "../shopify.server";
 import { createComplaint, getComplaintByCaseId, addAttachment } from "../lib/order-care.server";
 
 const ISSUE_TYPES = [
@@ -26,10 +25,6 @@ export async function loader({ request }) {
 
   if (!shop) return { shop: "", error: "no-shop", mode, trackResult: null, success: false, appUrl: APP_URL };
 
-  try { await unauthenticated.admin(shop); } catch (_) {
-    return { shop, error: "not-installed", mode, trackResult: null, success: false, appUrl: APP_URL };
-  }
-
   if (mode === "track" && caseId && email) {
     const complaint = await getComplaintByCaseId({ shopDomain: shop, caseId: caseId.toUpperCase() });
     if (!complaint) return { shop, error: null, mode, trackResult: { error: "not-found" }, success: false, appUrl: APP_URL };
@@ -46,10 +41,6 @@ export async function action({ request }) {
   const shop = url.searchParams.get("shop") || request.headers.get("x-shopify-shop-domain") || "";
 
   if (!shop) return { actionError: "Shop not identified." };
-
-  try { await unauthenticated.admin(shop); } catch (_) {
-    return { actionError: "Unable to verify shop." };
-  }
 
   const formData = await request.formData();
   const customerEmail = formData.get("customerEmail")?.trim();
