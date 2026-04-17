@@ -13,7 +13,17 @@ const STAGED_UPLOADS_MUTATION = `#graphql
   }
 `;
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 export async function loader({ request }) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS });
+  }
+
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop") || "";
   const filename = url.searchParams.get("filename") || "upload";
@@ -21,14 +31,14 @@ export async function loader({ request }) {
   const fileSize = url.searchParams.get("fileSize") || "0";
 
   if (!shop) {
-    return Response.json({ error: "Missing shop" }, { status: 400 });
+    return Response.json({ error: "Missing shop" }, { status: 400, headers: CORS });
   }
 
   let admin;
   try {
     ({ admin } = await unauthenticated.admin(shop));
   } catch (_) {
-    return Response.json({ error: "Shop session not found" }, { status: 401 });
+    return Response.json({ error: "Shop session not found" }, { status: 401, headers: CORS });
   }
 
   const res = await admin.graphql(STAGED_UPLOADS_MUTATION, {
@@ -48,12 +58,12 @@ export async function loader({ request }) {
   const errors = json?.data?.stagedUploadsCreate?.userErrors;
 
   if (!target || errors?.length) {
-    return Response.json({ error: errors?.[0]?.message || "Staged upload failed" }, { status: 500 });
+    return Response.json({ error: errors?.[0]?.message || "Staged upload failed" }, { status: 500, headers: CORS });
   }
 
   return Response.json({
     url: target.url,
     resourceUrl: target.resourceUrl,
     parameters: target.parameters,
-  });
+  }, { headers: CORS });
 }
