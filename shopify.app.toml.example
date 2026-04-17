@@ -1,0 +1,29 @@
+# Copy this file to shopify.app.toml and fill real values
+client_id = "YOUR_SHOPIFY_API_KEY"
+name = "RIAZ IMPEX Order Care"
+handle = "riaz-impex-order-care"
+application_url = "https://your-app-domain.example.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "your-dev-store.myshopify.com"
+
+[webhooks]
+api_version = "2026-01"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled", "orders/create", "orders/updated", "fulfillments/create", "fulfillments/update" ]
+  uri = "/webhooks"
+
+[access_scopes]
+scopes = "read_orders,write_orders,read_customers,read_all_orders"
+
+[auth]
+redirect_urls = [
+  "https://your-app-domain.example.com/auth/callback",
+  "https://your-app-domain.example.com/api/auth/callback"
+]
+
+[pos]
+embedded = false

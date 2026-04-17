@@ -1,0 +1,11 @@
+api_version = "2026-01"
+uid = "2d28b88f-7ecd-1436-5406-94cd9ac95b9c19e26f3d"
+
+[[extensions]]
+type = "ui_extension"
+name = "Order Care Block"
+handle = "order-care-order-block"
+
+[[extensions.targeting]]
+module = "./src/Block.jsx"
+target = "admin.order-details.block.render"

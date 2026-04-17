@@ -1,0 +1,30 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "0c2535f24542fae6fb35153cbca795db"
+name = "riaz-impex-order-care"
+application_url = "https://parker-classification-suddenly-parade.trycloudflare.com/app"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_all_orders,read_customers,read_orders,write_orders"
+
+[auth]
+redirect_urls = [
+  "https://parker-classification-suddenly-parade.trycloudflare.com/auth/callback",
+  "https://parker-classification-suddenly-parade.trycloudflare.com/api/auth/callback"
+]

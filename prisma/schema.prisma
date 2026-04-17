@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model Complaint {
+  id               String       @id @default(cuid())
+  caseId           String       @unique
+  shopDomain       String
+  shopifyOrderId   String?
+  shopifyOrderName String?
+  customerEmail    String
+  customerName     String?
+  issueType        String
+  productSummary   String?
+  currentStage     String?
+  trackingNumber   String?
+  carrier          String?
+  message          String
+  status           String       @default("New")
+  resolutionType   String?
+  customerUpdate   String?
+  internalNotes    String?
+  priority         String       @default("Normal")
+  source           String       @default("storefront")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  attachments      Attachment[]
+}
+
+model Attachment {
+  id          String    @id @default(cuid())
+  complaintId String
+  fileName    String
+  url         String
+  mimeType    String?
+  createdAt   DateTime  @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+}
