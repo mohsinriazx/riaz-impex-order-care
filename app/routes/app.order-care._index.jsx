@@ -1,22 +1,19 @@
 import { useLoaderData, useRouteLoaderData, Form } from "react-router";
-import { unauthenticated } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 import { listComplaints } from "../lib/order-care.server";
 
 export async function loader({ request }) {
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
+
   const url = new URL(request.url);
-  const shop = url.searchParams.get("shop") || "";
   const status = url.searchParams.get("status") || "";
   const q = url.searchParams.get("q") || "";
-  let complaints = [];
 
-  if (shop) {
-    try {
-      await unauthenticated.admin(shop);
-      complaints = await listComplaints({ shopDomain: shop, status: status || undefined, query: q || undefined });
-    } catch (_) {}
-  }
+  const complaints = await listComplaints({ shopDomain: shop, status: status || undefined, query: q || undefined });
 
   return {
+    shop,
     complaints,
     filters: { status, q },
     stats: {
@@ -43,8 +40,7 @@ const STAT_CONFIG = [
 ];
 
 export default function OrderCareIndex() {
-  const { stats, complaints, filters } = useLoaderData();
-  const { shop } = useRouteLoaderData("routes/app") || {};
+  const { stats, complaints, filters, shop } = useLoaderData();
   const qs = shop ? `?shop=${encodeURIComponent(shop)}` : "";
 
   return (
@@ -115,7 +111,7 @@ export default function OrderCareIndex() {
             <span style={{ fontSize: 13, color: "#92400e", fontWeight: 700 }}>Customer Portal</span>
             <input
               readOnly
-              value={`${typeof window !== "undefined" ? window.location.origin : ""}/public/order-care?shop=${encodeURIComponent(shop)}`}
+              value={`https://riazimpex.com/apps/order-care`}
               style={{
                 flex: 1, minWidth: 260, padding: "6px 12px",
                 border: "1px solid #e2e8f0", borderRadius: 6,

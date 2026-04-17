@@ -1,4 +1,5 @@
 import { createComplaint, getComplaintByCaseId, addAttachment } from "../lib/order-care.server";
+import { sendCustomerUpdate } from "../lib/email.server";
 
 const APP_URL = process.env.SHOPIFY_APP_URL?.replace(/\/$/, "") || "https://riaz-impex-order-care.onrender.com";
 
@@ -78,6 +79,8 @@ export async function action({ request }) {
     for (let i = 0; i < urls.length; i++) {
       if (urls[i]) await addAttachment({ complaintId: complaint.id, fileName: names[i] || `photo-${i + 1}`, url: urls[i], mimeType: mimes[i] || null });
     }
+
+    try { await sendCustomerUpdate({ complaint }); } catch (_) {}
 
     return Response.redirect(`${storeBase}?success=1&caseId=${complaint.caseId}`, 302);
   } catch (e) {
