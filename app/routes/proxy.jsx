@@ -1,5 +1,5 @@
 import { createComplaint, getComplaintByCaseId, addAttachment } from "../lib/order-care.server";
-import { sendCustomerUpdate } from "../lib/email.server";
+import { sendCustomerUpdate, sendAdminNotification } from "../lib/email.server";
 
 const APP_URL = process.env.SHOPIFY_APP_URL?.replace(/\/$/, "") || "https://riaz-impex-order-care.onrender.com";
 
@@ -80,7 +80,8 @@ export async function action({ request }) {
       if (urls[i]) await addAttachment({ complaintId: complaint.id, fileName: names[i] || `photo-${i + 1}`, url: urls[i], mimeType: mimes[i] || null });
     }
 
-    try { await sendCustomerUpdate({ complaint }); } catch (_) {}
+    try { await sendAdminNotification({ complaint }); } catch (_) {}
+    try { await sendCustomerUpdate({ complaint: { ...complaint, customerUpdate: "Thank you for contacting Riaz Impex. Your complaint has been received and we will review it shortly.", status: "New" } }); } catch (_) {}
 
     return Response.redirect(`${storeBase}?success=1&caseId=${complaint.caseId}`, 302);
   } catch (e) {

@@ -23,3 +23,5 @@ services:
         sync: false
       - key: RESEND_REPLY_TO
         sync: false
+      - key: SHOPIFY_STORE_DOMAIN
+        sync: false

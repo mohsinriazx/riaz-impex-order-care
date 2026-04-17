@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useLoaderData, Form, useNavigation, useActionData, useRouteLoaderData } from "react-router";
-import { unauthenticated } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 import { getComplaintByCaseId, updateComplaint } from "../lib/order-care.server";
 import { sendCustomerUpdate } from "../lib/email.server";
 
@@ -13,68 +13,53 @@ const STATUS_COLOR = {
 const PRIORITY_COLOR = { Normal: "#6b7280", High: "#d97706", Urgent: "#dc2626" };
 
 export async function loader({ request, params }) {
-  const url = new URL(request.url);
-  const shop = url.searchParams.get("shop") || "";
-  if (!shop) return { complaint: null, error: "no-shop" };
-
-  try {
-    await unauthenticated.admin(shop);
-  } catch (_) {
-    return { complaint: null, error: "no-session" };
-  }
-
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
   const complaint = await getComplaintByCaseId({ shopDomain: shop, caseId: params.caseId });
   if (!complaint) throw new Response("Case not found", { status: 404 });
-  return { complaint, error: null };
+  return { complaint, shop, error: null };
 }
 
 export async function action({ request, params }) {
-  const url = new URL(request.url);
-  const shop = url.searchParams.get("shop") || "";
-  if (!shop) return { success: false, error: "Shop session lost." };
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
 
   const formData = await request.formData();
-
-  try {
-    await unauthenticated.admin(shop);
-  } catch (_) {
-    return { success: false, error: "Could not verify shop session." };
-  }
-
   const prevComplaint = await getComplaintByCaseId({ shopDomain: shop, caseId: params.caseId });
+  const newStatus = formData.get("status") || undefined;
   const newCustomerUpdate = formData.get("customerUpdate") ?? undefined;
 
   await updateComplaint({
     shopDomain: shop,
     caseId: params.caseId,
-    status: formData.get("status") || undefined,
+    status: newStatus,
     resolutionType: formData.get("resolutionType") ?? undefined,
     customerUpdate: newCustomerUpdate,
     internalNotes: formData.get("internalNotes") ?? undefined,
     priority: formData.get("priority") || undefined,
   });
 
-  // Send email if customer update text changed and is non-empty
-  const shouldEmail =
-    newCustomerUpdate &&
-    newCustomerUpdate.trim() &&
-    newCustomerUpdate.trim() !== (prevComplaint?.customerUpdate || "").trim();
+  // Send email if: customer update message is non-empty AND (message changed OR status changed)
+  const statusChanged = newStatus && newStatus !== prevComplaint?.status;
+  const updateChanged = newCustomerUpdate?.trim() && newCustomerUpdate.trim() !== (prevComplaint?.customerUpdate || "").trim();
+  const shouldEmail = newCustomerUpdate?.trim() && (statusChanged || updateChanged);
 
+  let emailSent = false;
   if (shouldEmail && prevComplaint) {
     try {
-      const updatedComplaint = {
-        ...prevComplaint,
-        customerUpdate: newCustomerUpdate,
-        status: formData.get("status") || prevComplaint.status,
-        resolutionType: formData.get("resolutionType") || prevComplaint.resolutionType,
-      };
-      await sendCustomerUpdate({ complaint: updatedComplaint });
-    } catch (_) {
-      // Email failure should not break the save
-    }
+      await sendCustomerUpdate({
+        complaint: {
+          ...prevComplaint,
+          customerUpdate: newCustomerUpdate,
+          status: newStatus || prevComplaint.status,
+          resolutionType: formData.get("resolutionType") || prevComplaint.resolutionType,
+        },
+      });
+      emailSent = true;
+    } catch (_) {}
   }
 
-  return { success: true, emailSent: shouldEmail };
+  return { success: true, emailSent };
 }
 
 function fmt(date) {
@@ -375,7 +360,7 @@ export default function CaseDetail() {
             <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 8px" }}>Share with customers to let them submit issues:</p>
             <input
               readOnly
-              value={`${typeof window !== "undefined" ? window.location.origin : ""}/public/order-care?shop=${encodeURIComponent(shop || "")}`}
+              value="https://riazimpex.com/apps/order-care"
               style={{ padding: "6px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 11, color: "#6b7280", width: "100%", boxSizing: "border-box", cursor: "text" }}
               onClick={(e) => e.target.select()}
             />

@@ -34,11 +34,17 @@ export async function loader({ request }) {
     return Response.json({ error: "Missing shop" }, { status: 400, headers: CORS });
   }
 
+  // Try proxy shop first; fall back to the primary installed shop
+  const fallbackShop = process.env.SHOPIFY_STORE_DOMAIN || shop;
   let admin;
   try {
     ({ admin } = await unauthenticated.admin(shop));
   } catch (_) {
-    return Response.json({ error: "Shop session not found" }, { status: 401, headers: CORS });
+    try {
+      ({ admin } = await unauthenticated.admin(fallbackShop));
+    } catch (__) {
+      return Response.json({ error: "Shop session not found. Please contact support." }, { status: 401, headers: CORS });
+    }
   }
 
   const res = await admin.graphql(STAGED_UPLOADS_MUTATION, {
