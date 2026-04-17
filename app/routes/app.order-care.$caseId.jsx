@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { useLoaderData, Form, useNavigation, useActionData, useRouteLoaderData } from "react-router";
-import { authenticate } from "../shopify.server";
 import { getComplaintByCaseId, updateComplaint } from "../lib/order-care.server";
 import { sendCustomerUpdate } from "../lib/email.server";
 
@@ -13,16 +12,18 @@ const STATUS_COLOR = {
 const PRIORITY_COLOR = { Normal: "#6b7280", High: "#d97706", Urgent: "#dc2626" };
 
 export async function loader({ request, params }) {
-  const { session } = await authenticate.admin(request);
-  const shop = session.shop;
+  // Authentication handled by parent routes/app.jsx — just use shop from URL
+  const url = new URL(request.url);
+  const shop = url.searchParams.get("shop") || "";
   const complaint = await getComplaintByCaseId({ shopDomain: shop, caseId: params.caseId });
   if (!complaint) throw new Response("Case not found", { status: 404 });
-  return { complaint, shop, error: null };
+  return { complaint, error: null };
 }
 
 export async function action({ request, params }) {
-  const { session } = await authenticate.admin(request);
-  const shop = session.shop;
+  const url = new URL(request.url);
+  const shop = url.searchParams.get("shop") || "";
+  if (!shop) return { success: false, error: "Shop not identified." };
 
   const formData = await request.formData();
   const prevComplaint = await getComplaintByCaseId({ shopDomain: shop, caseId: params.caseId });
@@ -39,7 +40,7 @@ export async function action({ request, params }) {
     priority: formData.get("priority") || undefined,
   });
 
-  // Send email if: customer update message is non-empty AND (message changed OR status changed)
+  // Email customer when status changes OR customer update message changes
   const statusChanged = newStatus && newStatus !== prevComplaint?.status;
   const updateChanged = newCustomerUpdate?.trim() && newCustomerUpdate.trim() !== (prevComplaint?.customerUpdate || "").trim();
   const shouldEmail = newCustomerUpdate?.trim() && (statusChanged || updateChanged);
