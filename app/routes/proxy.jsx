@@ -86,9 +86,6 @@ export async function action({ request }) {
   }
 }
 
-// No default export needed — loader returns raw HTML Response
-export default function Proxy() { return null; }
-
 // ─── HTML Builder ─────────────────────────────────────────────────────────────
 function buildHtml({ shop, mode, success, caseId, trackResult, storeBase, appUrl, actionError }) {
   const isTrack = mode === "track";
